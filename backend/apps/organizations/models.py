@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.core.validators import FileExtensionValidator
 
 from apps.core.models import TimeStampedModel
 
@@ -9,6 +10,7 @@ class Organization(TimeStampedModel):
     slug = models.SlugField(unique=True)
     contact_email = models.EmailField(blank=True)
     contact_phone = models.CharField(max_length=32, blank=True)
+    logo = models.FileField(upload_to="organizations/logos/", blank=True, null=True, validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])])
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -29,8 +31,11 @@ class Branch(TimeStampedModel):
     slug = models.SlugField()
     status = models.CharField(max_length=16, choices=BranchStatus.choices, default=BranchStatus.ACTIVE)
     working_hours = models.CharField(max_length=255, blank=True)
+    timezone = models.CharField(max_length=64, default="UTC")
     address = models.TextField(blank=True)
     queue_prefix = models.CharField(max_length=8, default="A")
+    logo = models.FileField(upload_to="branches/logos/", blank=True, null=True, validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])])
+    is_active = models.BooleanField(default=True)
     manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -74,6 +79,7 @@ class Counter(TimeStampedModel):
     branch = models.ForeignKey("organizations.Branch", on_delete=models.CASCADE, related_name="counters")
     name = models.CharField(max_length=255)
     status = models.CharField(max_length=16, choices=CounterStatus.choices, default=CounterStatus.OPEN)
+    is_active = models.BooleanField(default=True)
     assigned_staff = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="assigned_counters")
 
     class Meta:
@@ -83,3 +89,18 @@ class Counter(TimeStampedModel):
     def __str__(self) -> str:
         return f"{self.branch.name} - {self.name}"
 
+
+class Department(TimeStampedModel):
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, related_name="departments")
+    branch = models.ForeignKey("organizations.Branch", on_delete=models.CASCADE, related_name="departments")
+    name = models.CharField(max_length=255)
+    slug = models.SlugField()
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("name",)
+        unique_together = ("branch", "slug")
+
+    def __str__(self) -> str:
+        return self.name

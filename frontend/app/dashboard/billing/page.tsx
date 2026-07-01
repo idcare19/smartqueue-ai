@@ -1,7 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { DashboardTable } from '@/components/site/dashboard-table';
 import { EmptyState } from '@/components/site/empty-state';
-import { invoiceRows, subscriptionPlans } from '@/lib/mock-data';
 import type { TableColumn } from '@/lib/types';
 
 const invoiceColumns: Array<TableColumn<Record<string, string>>> = [
@@ -16,16 +15,11 @@ export default function SubscriptionBillingPage() {
   return (
     <div className="space-y-6 px-4 py-6 md:px-6">
       <div className="grid gap-4 xl:grid-cols-4">
-        {subscriptionPlans.map((plan) => (
-          <Card key={plan.name} className={plan.highlighted ? 'border-emerald-400/40 bg-emerald-400/8' : ''}>
-            <p className="text-sm text-slate-400">{plan.name}</p>
-            <p className="mt-3 text-4xl font-semibold text-white">{plan.price}</p>
-            <p className="mt-3 text-sm text-slate-300">{plan.description}</p>
-            <div className="mt-6 space-y-2 text-sm text-slate-200">
-              {plan.features.map((feature) => (
-                <div key={feature} className="rounded-2xl bg-white/5 px-3 py-2">{feature}</div>
-              ))}
-            </div>
+        {['Starter', 'Growth', 'Pro', 'Enterprise'].map((plan, index) => (
+          <Card key={plan} className={index === 2 ? 'border-emerald-400/40 bg-emerald-400/8' : ''}>
+            <p className="text-sm text-slate-400">{plan}</p>
+            <p className="mt-3 text-4xl font-semibold text-white">{['$0', '$49', '$99', 'Custom'][index]}</p>
+            <p className="mt-3 text-sm text-slate-300">Billing and invoice automation ready for deployment.</p>
           </Card>
         ))}
       </div>
@@ -54,7 +48,7 @@ export default function SubscriptionBillingPage() {
             <p className="mt-2 text-lg font-semibold text-white">Go to Professional to unlock more branches and notifications.</p>
           </div>
         </Card>
-      <DashboardTable title="Invoices" columns={invoiceColumns} rows={invoiceRows as unknown as Array<Record<string, string>>} />
+      <DashboardTable title="Invoices" columns={invoiceColumns} rows={[]} />
       </div>
       <Card>
         <h2 className="text-xl font-semibold text-white">Stripe / Razorpay ready billing UI</h2>

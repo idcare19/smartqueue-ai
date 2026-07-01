@@ -102,6 +102,11 @@ export type QueueApiToken = {
   queue_date: string;
   estimated_wait_minutes: number;
   confidence: string;
+  queue_type?: string;
+  priority?: string;
+  is_paused?: boolean;
+  is_open?: boolean;
+  transferred_from_counter?: number | null;
 };
 
 export type AnalyticsSummary = {

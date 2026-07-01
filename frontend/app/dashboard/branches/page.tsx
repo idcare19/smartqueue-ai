@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FiltersBar } from '@/components/site/filters-bar';
 import { DashboardTable } from '@/components/site/dashboard-table';
 import { EmptyState } from '@/components/site/empty-state';
-import { branchManagementRows } from '@/lib/mock-data';
 import { queueApi } from '@/lib/queue-api';
 import type { TableColumn } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
@@ -21,33 +20,133 @@ const branchColumns: Array<TableColumn<Record<string, string>>> = [
 
 export default function BranchManagementPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const [rows, setRows] = useState<Array<Record<string, string>>>(branchManagementRows as unknown as Array<Record<string, string>>);
+  const user = useAuthStore((state) => state.user);
+  const [rows, setRows] = useState<Array<Record<string, string>>>([]);
+  const [rawBranches, setRawBranches] = useState<Array<Record<string, string | number | null>>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    working_hours: '9 AM - 5 PM',
+    timezone: 'UTC',
+    status: 'active'
+  });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    async function loadBranches() {
-      try {
-        const data = await queueApi.getBranches(accessToken);
-        setRows(
-          data.map((item) => ({
-            branch: String(item.name ?? '--'),
-            status: String(item.status ?? '--'),
-            workingHours: String(item.working_hours ?? '--'),
-            manager: String(item.manager_email ?? '--'),
-            queue: String(item.queue ?? '0'),
-            staff: String(item.staff ?? '0')
-          }))
-        );
-        setError(null);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load branches.');
-      }
-    }
-
-    if (accessToken) {
-      void loadBranches();
+  const loadBranches = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const data = await queueApi.getBranches(accessToken);
+      setRawBranches(data);
+      setRows(
+        data.map((item) => ({
+          id: String(item.id ?? ''),
+          branch: String(item.name ?? '--'),
+          status: String(item.status ?? '--'),
+          workingHours: String(item.working_hours ?? '--'),
+          manager: String(item.manager_email ?? '--'),
+          queue: String(item.queue ?? '0'),
+          staff: String(item.staff ?? '0')
+        }))
+      );
+      setError(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load branches.');
     }
   }, [accessToken]);
+
+  const handleEdit = (row: Record<string, string>) => {
+    const id = parseInt(row.id, 10);
+    const branch = rawBranches.find(b => b.id === id);
+    if (branch) {
+      setEditingId(id);
+      setFormData({
+        name: String(branch.name || ''),
+        working_hours: String(branch.working_hours || '9 AM - 5 PM'),
+        timezone: String(branch.timezone || 'UTC'),
+        status: String(branch.status || 'active')
+      });
+    }
+  };
+
+  const handleDelete = async (row: Record<string, string>) => {
+    const id = parseInt(row.id, 10);
+    if (!accessToken || isNaN(id)) return;
+    try {
+      await queueApi.deleteBranch(accessToken, id);
+      await loadBranches();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete branch.');
+    }
+  };
+
+  const handleRestore = async (row: Record<string, string>) => {
+    const id = parseInt(row.id, 10);
+    if (!accessToken || isNaN(id)) return;
+    try {
+      await queueApi.updateBranch(accessToken, id, { is_active: true });
+      await loadBranches();
+    } catch (restoreError) {
+      setError(restoreError instanceof Error ? restoreError.message : 'Unable to restore branch.');
+    }
+  };
+
+  const branchActions = [
+    {
+      label: 'Edit',
+      onClick: handleEdit
+    },
+    {
+      label: 'Delete',
+      onClick: handleDelete,
+      variant: 'destructive' as const
+    },
+    {
+      label: 'Restore',
+      onClick: handleRestore
+    }
+  ];
+
+  useEffect(() => {
+    loadBranches();
+  }, [accessToken, loadBranches]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessToken || !user?.organization) return;
+    
+    setIsSubmitting(true);
+    try {
+      const slug = formData.name.toLowerCase().replace(/\s+/g, '-');
+      if (editingId) {
+        // Update existing branch
+        await queueApi.updateBranch(accessToken, editingId, {
+          name: formData.name,
+          status: formData.status,
+          working_hours: formData.working_hours,
+          timezone: formData.timezone
+        });
+        setEditingId(null);
+      } else {
+        // Create new branch
+        await queueApi.createBranch(accessToken, {
+          organization: user.organization,
+          name: formData.name,
+          slug,
+          status: formData.status,
+          working_hours: formData.working_hours,
+          timezone: formData.timezone,
+          manager: user.id
+        });
+      }
+      setFormData({ name: '', working_hours: '9 AM - 5 PM', timezone: 'UTC', status: 'active' });
+      await loadBranches();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : `Unable to ${editingId ? 'update' : 'create'} branch.`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 px-4 py-6 md:px-6">
@@ -66,16 +165,62 @@ export default function BranchManagementPage() {
         ))}
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <DashboardTable title="Branches" columns={branchColumns} rows={rows} />
+        <DashboardTable title="Branches" columns={branchColumns} rows={rows} actions={branchActions} />
         <Card>
           <h2 className="text-xl font-semibold text-white">Add / edit branch</h2>
-          <p className="mt-2 text-sm text-slate-300">Backend-ready form layout for branch creation and updates.</p>
-          <div className="mt-6 space-y-3 rounded-3xl bg-white/5 p-4">
-            <div className="rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-slate-300">Branch name</div>
-            <div className="rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-slate-300">Manager info</div>
-            <div className="rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-slate-300">Working hours</div>
-            <div className="rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-slate-300">Status and capacity</div>
-          </div>
+          <p className="mt-2 text-sm text-slate-300">Create a new branch for your organization.</p>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-3 rounded-3xl bg-white/5 p-4">
+            <input
+              type="text"
+              placeholder="Branch name"
+              value={formData.name}
+              onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+              className="w-full rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <div className="rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-slate-300">Manager: {user?.email ?? 'Current user'}</div>
+            <input
+              type="text"
+              placeholder="Working hours"
+              value={formData.working_hours}
+              onChange={(event) => setFormData({ ...formData, working_hours: event.target.value })}
+              className="w-full rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={formData.status}
+              onChange={(event) => setFormData({ ...formData, status: event.target.value })}
+              className="w-full rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Timezone"
+              value={formData.timezone}
+              onChange={(event) => setFormData({ ...formData, timezone: event.target.value })}
+              className="w-full rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (editingId ? 'Updating...' : 'Creating...') : (editingId ? 'Update Branch' : 'Create Branch')}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setFormData({ name: '', working_hours: '9 AM - 5 PM', timezone: 'UTC', status: 'active' });
+                }}
+                className="w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </form>
         </Card>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

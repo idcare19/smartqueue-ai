@@ -1,11 +1,14 @@
 import json
-from django.urls import reverse
+from django.urls import clear_url_caches, reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from apps.core.health import get_aggregate_health, check_database_health, check_redis_health, check_celery_health, check_websocket_health
 
 
 class HealthCheckTests(APITestCase):
+    def setUp(self):
+        clear_url_caches()
+
     def test_health_endpoint_returns_200(self):
         """Test that the main health endpoint returns 200 even with degraded services"""
         response = self.client.get(reverse("health-overall"))
@@ -65,3 +68,11 @@ class HealthCheckTests(APITestCase):
         self.assertIn("status", health_report)
         self.assertIn("services", health_report)
         self.assertEqual(len(health_report["services"]), 4)  # db, redis, celery, websocket
+
+    def test_version_and_info_endpoints(self):
+        version_response = self.client.get(reverse("version"))
+        info_response = self.client.get(reverse("app-info"))
+        self.assertEqual(version_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(info_response.status_code, status.HTTP_200_OK)
+        self.assertIn("version", json.loads(version_response.content))
+        self.assertIn("name", json.loads(info_response.content))

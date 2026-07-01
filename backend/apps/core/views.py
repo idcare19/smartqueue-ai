@@ -1,4 +1,6 @@
 import logging
+import platform
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -69,6 +71,31 @@ class WebSocketHealthView(BaseHealthView):
     def get(self, request):
         health_data = check_websocket_health()
         return JsonResponse(health_data, status=get_health_status_code(health_data))
+
+
+class VersionView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(never_cache)
+    def get(self, request):
+        return JsonResponse({
+            "version": getattr(settings, "APP_VERSION", "1.0.0"),
+            "environment": "production" if not settings.DEBUG else "development",
+        })
+
+
+class AppInfoView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(never_cache)
+    def get(self, request):
+        return JsonResponse({
+            "name": "SmartQueue AI",
+            "version": getattr(settings, "APP_VERSION", "1.0.0"),
+            "python": platform.python_version(),
+            "debug": settings.DEBUG,
+            "platform": platform.platform(),
+        })
 
 
 def ratelimit_view(request, exception=None):

@@ -8,7 +8,6 @@ import { Breadcrumbs } from '@/components/site/breadcrumbs';
 import { EmptyState } from '@/components/site/empty-state';
 import { FiltersBar } from '@/components/site/filters-bar';
 import { Card } from '@/components/ui/card';
-import { analyticsFallback } from '@/lib/mock-data';
 import { queueApi } from '@/lib/queue-api';
 import type { AnalyticsSummary } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
@@ -32,7 +31,17 @@ function formatConfidence(confidence: string | undefined) {
 export default function AnalyticsDashboard() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
-  const [summary, setSummary] = useState<AnalyticsSummary>(analyticsFallback);
+  const [summary, setSummary] = useState<AnalyticsSummary>({
+    average_wait_time_minutes: 0,
+    average_service_time_minutes: 0,
+    peak_hours: [],
+    no_show_rate: 0,
+    completed_tokens: 0,
+    queue_load_by_service: [],
+    counter_performance: [],
+    insights: [],
+    prediction: null
+  });
   const [error, setError] = useState<string | null>(null);
 
   const { status } = useQueueWebsocket({

@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: smartqueue
+          POSTGRES_USER: smartqueue
+          POSTGRES_PASSWORD: smartqueue
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U smartqueue -d smartqueue"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DEBUG: "0"
+      DJANGO_SECRET_KEY: ci-secret-key
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      FRONTEND_URL: http://localhost:3000
+      DB_ENGINE: django.db.backends.postgresql
+      POSTGRES_DB: smartqueue
+      POSTGRES_USER: smartqueue
+      POSTGRES_PASSWORD: smartqueue
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      CELERY_TASK_ALWAYS_EAGER: "true"
+      CELERY_BROKER_URL: memory://
+      CELERY_RESULT_BACKEND: cache+memory://
+      NOTIFICATIONS_EMAIL_ENABLED: "1"
+      NOTIFICATIONS_IN_APP_ENABLED: "1"
+      NOTIFICATIONS_SMS_ENABLED: "0"
+      NOTIFICATIONS_WHATSAPP_ENABLED: "0"
+      SMTP_HOST: localhost
+      SMTP_PORT: "587"
+      SMTP_USERNAME: ci
+      SMTP_PASSWORD: ci
+      SMTP_USE_TLS: "1"
+      SMTP_USE_SSL: "0"
+      DEFAULT_FROM_EMAIL: no-reply@smartqueue.local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python manage.py check
+      - run: python manage.py test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

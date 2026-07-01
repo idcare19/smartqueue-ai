@@ -103,3 +103,25 @@ class QueueEngineTests(APITestCase):
         self.assertEqual(customer_response.status_code, status.HTTP_200_OK)
         self.assertEqual(customer_response.data["token_number"], token.token_number)
 
+    def test_queue_actions(self):
+        self.authenticate()
+        open_response = self.client.post(reverse("queue-token-open-queue"), format="json")
+        close_response = self.client.post(reverse("queue-token-close-queue"), format="json")
+        self.assertEqual(open_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(close_response.status_code, status.HTTP_200_OK)
+
+        token = QueueToken.objects.create(
+            organization=self.organization,
+            branch=self.branch,
+            service=self.service,
+            customer_name="Noah",
+            mobile_number="7777777777",
+            token_number="C-002",
+            sequence_number=2,
+        )
+        pause_response = self.client.post(reverse("queue-token-pause", args=[token.id]), format="json")
+        resume_response = self.client.post(reverse("queue-token-resume", args=[token.id]), format="json")
+        self.assertEqual(pause_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(pause_response.data["is_paused"])
+        self.assertEqual(resume_response.status_code, status.HTTP_200_OK)
+        self.assertFalse(resume_response.data["is_paused"])

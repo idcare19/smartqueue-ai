@@ -8,7 +8,6 @@ import { MetricCard } from '@/components/site/metric-card';
 import { FiltersBar } from '@/components/site/filters-bar';
 import { DashboardTable } from '@/components/site/dashboard-table';
 import { EmptyState } from '@/components/site/empty-state';
-import { dashboardStats, queueRows } from '@/lib/mock-data';
 import type { TableColumn } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -24,7 +23,12 @@ const queueColumns: Array<TableColumn<Record<string, string>>> = [
 export default function SuperAdminDashboard() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
-  const [stats, setStats] = useState(dashboardStats);
+  const [stats, setStats] = useState([
+    { label: 'Active tokens', value: '0', trend: 'Live queue load' },
+    { label: 'Completed today', value: '0', trend: 'Today' },
+    { label: 'Average wait', value: '0 min', trend: 'AI estimate' },
+    { label: 'Online staff', value: '0', trend: 'Connected now' }
+  ]);
   const { status } = useQueueWebsocket({
     enabled: Boolean(accessToken && user?.organization),
     token: accessToken,
@@ -51,7 +55,7 @@ export default function SuperAdminDashboard() {
         {stats.map((item) => <MetricCard key={item.label} {...item} />)}
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-        <DashboardTable title="Today&apos;s queue activity" columns={queueColumns} rows={queueRows} />
+        <DashboardTable title="Today&apos;s queue activity" columns={queueColumns} rows={[]} />
         <Card>
           <h2 className="text-xl font-semibold">Alerts</h2>
           <div className="mt-6 space-y-3">

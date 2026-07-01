@@ -9,6 +9,7 @@ from apps.core.permissions import SmartQueueModelPermission
 from apps.notifications.models import NotificationEvent
 from apps.notifications.services import notify_queue_event
 from apps.organizations.models import Counter
+from apps.organizations.models import Service
 
 from .events import broadcast_queue_event
 from .models import QueueToken
@@ -51,6 +52,48 @@ class QueueTokenViewSet(viewsets.ModelViewSet):
         token = serializer.save()
         broadcast_queue_event(token, "token.created")
         notify_queue_event(NotificationEvent.QUEUE_JOINED, token)
+        return Response(QueueTokenSerializer(token).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="walk-in")
+    def walk_in(self, request):
+        payload = dict(request.data)
+        payload["queue_type"] = "walk_in"
+        serializer = JoinQueueSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.save()
+        broadcast_queue_event(token, "token.created")
+        return Response(QueueTokenSerializer(token).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="appointment")
+    def appointment(self, request):
+        payload = dict(request.data)
+        payload["queue_type"] = "appointment"
+        serializer = JoinQueueSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.save()
+        broadcast_queue_event(token, "token.created")
+        return Response(QueueTokenSerializer(token).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="vip")
+    def vip(self, request):
+        payload = dict(request.data)
+        payload["queue_type"] = "vip"
+        payload["priority"] = "vip"
+        serializer = JoinQueueSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.save()
+        broadcast_queue_event(token, "token.created")
+        return Response(QueueTokenSerializer(token).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="emergency")
+    def emergency(self, request):
+        payload = dict(request.data)
+        payload["queue_type"] = "emergency"
+        payload["priority"] = "emergency"
+        serializer = JoinQueueSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.save()
+        broadcast_queue_event(token, "token.created")
         return Response(QueueTokenSerializer(token).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"], url_path="staff-dashboard")
@@ -162,6 +205,53 @@ class QueueTokenViewSet(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         token = self.get_object()
         token = self._move_status(token, QueueToken.QueueStatus.COMPLETED, note=request.data.get("note", ""))
+        return Response(QueueTokenSerializer(token).data)
+
+    @action(detail=True, methods=["post"], url_path="pause")
+    def pause(self, request, pk=None):
+        token = self.get_object()
+        token.is_paused = True
+        token.save(update_fields=["is_paused"])
+        broadcast_queue_event(token, "queue.paused")
+        return Response(QueueTokenSerializer(token).data)
+
+    @action(detail=True, methods=["post"], url_path="resume")
+    def resume(self, request, pk=None):
+        token = self.get_object()
+        token.is_paused = False
+        token.save(update_fields=["is_paused"])
+        broadcast_queue_event(token, "queue.resumed")
+        return Response(QueueTokenSerializer(token).data)
+
+    @action(detail=False, methods=["post"], url_path="open")
+    def open_queue(self, request):
+        return Response({"detail": "Queue opened."})
+
+    @action(detail=False, methods=["post"], url_path="close")
+    def close_queue(self, request):
+        return Response({"detail": "Queue closed."})
+
+    @action(detail=True, methods=["post"], url_path="transfer-counter")
+    def transfer_counter(self, request, pk=None):
+        token = self.get_object()
+        serializer = QueueActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        counter = serializer.validated_data.get("counter")
+        token.transferred_from_counter = token.counter
+        token.counter = counter
+        token.save(update_fields=["transferred_from_counter", "counter"])
+        broadcast_queue_event(token, "token.transferred_counter")
+        return Response(QueueTokenSerializer(token).data)
+
+    @action(detail=True, methods=["post"], url_path="transfer-service")
+    def transfer_service(self, request, pk=None):
+        token = self.get_object()
+        serializer = QueueActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        service = serializer.validated_data.get("service")
+        token.service = service
+        token.save(update_fields=["service"])
+        broadcast_queue_event(token, "token.transferred_service")
         return Response(QueueTokenSerializer(token).data)
 
     @action(detail=True, methods=["post"], url_path="no-show")

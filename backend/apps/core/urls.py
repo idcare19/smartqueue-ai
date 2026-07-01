@@ -4,7 +4,9 @@ from .views import (
     DatabaseHealthView,
     RedisHealthView,
     CeleryHealthView,
-    WebSocketHealthView
+    WebSocketHealthView,
+    VersionView,
+    AppInfoView,
 )
 
 urlpatterns = [
@@ -13,4 +15,6 @@ urlpatterns = [
     path('health/redis/', RedisHealthView.as_view(), name='health-redis'),
     path('health/celery/', CeleryHealthView.as_view(), name='health-celery'),
     path('health/websocket/', WebSocketHealthView.as_view(), name='health-websocket'),
+    path('version/', VersionView.as_view(), name='version'),
+    path('info/', AppInfoView.as_view(), name='app-info'),
 ]

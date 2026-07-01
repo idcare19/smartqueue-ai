@@ -1,11 +1,13 @@
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.accounts.models import UserRole
 from apps.core.permissions import SmartQueueModelPermission
 
-from .models import Branch, Counter, Organization, Service
-from .serializers import BranchSerializer, CounterSerializer, OrganizationSerializer, ServiceSerializer
+from .models import Branch, Counter, Department, Organization, Service
+from .serializers import BranchSerializer, CounterSerializer, DepartmentSerializer, OrganizationSerializer, ServiceSerializer
 
 
 class ScopedQuerysetMixin:
@@ -42,6 +44,20 @@ class OrganizationViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         return self.get_scoped_queryset(self.queryset)
 
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save(update_fields=["is_active"])
+        return Response(self.get_serializer(instance).data)
+
 
 class BranchViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     serializer_class = BranchSerializer
@@ -50,6 +66,17 @@ class BranchViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return self.get_scoped_queryset(self.queryset)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save(update_fields=["is_active"])
+        return Response(self.get_serializer(instance).data)
 
 
 class ServiceViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
@@ -60,6 +87,17 @@ class ServiceViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         return self.get_scoped_queryset(self.queryset)
 
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save(update_fields=["is_active"])
+        return Response(self.get_serializer(instance).data)
+
 
 class CounterViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     serializer_class = CounterSerializer
@@ -69,3 +107,32 @@ class CounterViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         return self.get_scoped_queryset(self.queryset)
 
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save(update_fields=["is_active"])
+        return Response(self.get_serializer(instance).data)
+
+
+class DepartmentViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+    serializer_class = DepartmentSerializer
+    permission_classes = [SmartQueueModelPermission]
+    queryset = Department.objects.select_related("organization", "branch")
+
+    def get_queryset(self):
+        return self.get_scoped_queryset(self.queryset)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+
+    def restore(self, request, pk=None):
+        instance = self.get_object()
+        instance.is_active = True
+        instance.save(update_fields=["is_active"])
+        return Response(self.get_serializer(instance).data)

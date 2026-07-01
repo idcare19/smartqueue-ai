@@ -61,6 +61,27 @@ export type AuthResponse = AuthTokens & {
   user: AuthUser;
 };
 
+export type RegisterResponse = {
+  user: AuthUser;
+  email_verification_required?: boolean;
+  access?: string;
+  refresh?: string;
+};
+
+export type VerifyEmailPayload = {
+  uid: string;
+  token: string;
+};
+
+export type ResetPasswordPayload = VerifyEmailPayload & {
+  password: string;
+  confirm_password: string;
+};
+
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
 export function isRouteAllowed(pathname: string, role?: UserRole) {
   if (!role) return false;
 

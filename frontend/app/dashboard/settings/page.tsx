@@ -8,15 +8,14 @@ import { Button } from '@/components/ui/button';
 import { FiltersBar } from '@/components/site/filters-bar';
 import { EmptyState } from '@/components/site/empty-state';
 import { notificationsApi } from '@/lib/notifications-api';
-import { notificationLogsFallback, notificationStatsFallback, notificationTemplatesFallback } from '@/lib/mock-data';
 import type { NotificationLogItem, NotificationStats, NotificationTemplateItem } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function SettingsPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const [templates, setTemplates] = useState<NotificationTemplateItem[]>(notificationTemplatesFallback);
-  const [stats, setStats] = useState<NotificationStats>(notificationStatsFallback);
-  const [logs, setLogs] = useState<NotificationLogItem[]>(notificationLogsFallback);
+  const [templates, setTemplates] = useState<NotificationTemplateItem[]>([]);
+  const [stats, setStats] = useState<NotificationStats>({ total: 0, unread: 0, failed: 0, delivered: 0, providers: [] });
+  const [logs, setLogs] = useState<NotificationLogItem[]>([]);
   const [templateName, setTemplateName] = useState('Token Called SMS');
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateBody, setTemplateBody] = useState('Hello {{ customer_name }}, your token {{ token }} is now being called at {{ branch_name }}.');

@@ -1,101 +1,136 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ConnectionIndicator } from '@/components/realtime/connection-indicator';
-import { LiveToast } from '@/components/realtime/live-toast';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueueWebsocket } from '@/components/realtime/use-queue-websocket';
-import { Card } from '@/components/ui/card';
-import { Breadcrumbs } from '@/components/site/breadcrumbs';
-import { EmptyState } from '@/components/site/empty-state';
-import { queueRows } from '@/lib/mock-data';
 import { queueApi } from '@/lib/queue-api';
+import type { QueueApiToken } from '@/lib/types';
 
-type DisplayRow = {
-  token: string;
-  customer: string;
-  wait?: string;
-};
-
-export default function PublicDisplayPage() {
-  const [rows, setRows] = useState<DisplayRow[]>(queueRows.map((row) => ({ token: row.token, customer: row.customer, wait: row.eta })));
+export default function PublicDisplay() {
+  const [, setTokens] = useState<QueueApiToken[]>([]);
+  const [currentToken, setCurrentToken] = useState<QueueApiToken | null>(null);
+  const [nextTokens, setNextTokens] = useState<QueueApiToken[]>([]);
+  const [branch, setBranch] = useState<string>('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
-  const { status } = useQueueWebsocket({
-    path: '/ws/queue/public/all/',
+  // Extract branch from URL search params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const branchParam = params.get('branch');
+    if (branchParam) {
+      setBranch(branchParam);
+    }
+  }, []);
+
+  // Load initial queue status
+  const loadQueueStatus = useCallback(async () => {
+    if (!branch) return;
+    setLoading(true);
+    try {
+      const data = await queueApi.publicStatus(branch);
+      processQueueData(data);
+      setError(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load queue status.');
+    } finally {
+      setLoading(false);
+    }
+  }, [branch]);
+
+  // Process queue data to separate current and next tokens
+  const processQueueData = (data: QueueApiToken[]) => {
+    const sorted = [...data];
+    
+    const serving = sorted.find(t => t.status === 'serving');
+    const waiting = sorted.filter(t => t.status === 'waiting').slice(0, 5);
+    
+    setCurrentToken(serving || null);
+    setNextTokens(waiting);
+    setTokens(sorted);
+  };
+
+  // Initial load
+  useEffect(() => {
+    if (branch) {
+      loadQueueStatus();
+      const interval = setInterval(loadQueueStatus, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [branch, loadQueueStatus]);
+
+  // WebSocket for real-time updates
+  const { status: socketStatus } = useQueueWebsocket({
+    enabled: Boolean(branch),
+    path: `/ws/queue/public/${branch}/`,
     onMessage: (payload) => {
-      if (!payload.token) {
-        return;
+      if (payload.token) {
+        processQueueData([payload.token]);
       }
-      const token = payload.token;
-      setRows((current) => {
-        const next = [
-          {
-            token: token.token_number,
-            customer: token.customer_name,
-            wait: `${token.estimated_wait_minutes} min`
-          },
-          ...current.filter((row) => row.token !== token.token_number)
-        ];
-        return next.slice(0, 10);
-      });
-      setToast(`${token.token_number} ${payload.event.replace('token.', '').replace('_', ' ')}`);
-      window.setTimeout(() => setToast(null), 2200);
     }
   });
 
-  useEffect(() => {
-    async function loadDisplay() {
-      try {
-        const data = await queueApi.publicStatus();
-        setRows(
-          data.map((item) => ({
-            token: item.token_number,
-            customer: item.customer_name,
-            wait: `${item.estimated_wait_minutes} min`
-          }))
-        );
-        setError(null);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load public queue status.');
-      }
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-white text-2xl">Loading queue display...</div>
+      </div>
+    );
+  }
 
-    void loadDisplay();
-  }, []);
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-red-400 text-2xl">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white md:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between gap-4">
-          <Breadcrumbs items={[{ label: 'Display', href: '/display' }, { label: 'Live screen' }]} />
-          <ConnectionIndicator status={status} />
-        </div>
-      </div>
-      <Card className="mx-auto max-w-7xl mt-4">
-        <p className="text-sm text-emerald-300">Now serving</p>
-        <h1 className="mt-3 text-7xl font-semibold tracking-tight">{rows[0]?.token ?? 'A-014'}</h1>
-        <p className="mt-4 text-slate-300">{rows[0]?.customer ?? 'Counter 03'}</p>
-        <p className="mt-2 text-sm text-cyan-200">Estimated wait: {rows[0]?.wait ?? '--'}</p>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {rows.slice(0, 3).map((row) => (
-            <div key={row.token} className="rounded-3xl bg-white/5 p-5">
-              <p className="text-sm text-slate-400">Next token</p>
-              <p className="mt-2 text-2xl font-semibold">{row.token}</p>
-              <p className="mt-2 text-sm text-slate-300">{row.customer}</p>
-              <p className="mt-2 text-sm text-cyan-200">ETA {row.wait ?? '--'}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-8">
-          {error ? (
-            <EmptyState title="Display API unavailable" description={`${error} Showing fallback queue display data.`} actionLabel="Retry later" />
+    <div className="min-h-screen bg-slate-950 text-white p-8">
+      <header className="text-center mb-12">
+        <h1 className="text-5xl font-bold mb-2">SmartQueue AI</h1>
+        <p className="text-slate-400 text-xl">Live Queue Status</p>
+        {socketStatus !== 'connected' && (
+          <p className="text-yellow-400 mt-2">WebSocket disconnected - Refreshing automatically...</p>
+        )}
+      </header>
+
+      {/* Current serving token */}
+      <section className="mb-12">
+        <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl p-12 text-center shadow-2xl">
+          <h2 className="text-3xl font-semibold mb-4">Now Serving</h2>
+          {currentToken ? (
+            <>
+              <div className="text-8xl font-bold mb-4">{currentToken.token_number}</div>
+              <p className="text-2xl">{currentToken.customer_name}</p>
+            </>
           ) : (
-            <EmptyState title="No announcement queued" description="Branch-wide display announcements can appear here once connected to live admin updates." actionLabel="Create announcement" />
+            <div className="text-4xl text-blue-200">No tokens being served</div>
           )}
         </div>
-      </Card>
-      <LiveToast message={toast} />
-    </main>
+      </section>
+
+      {/* Next tokens */}
+      <section>
+        <h2 className="text-3xl font-semibold text-center mb-8">Up Next</h2>
+        <div className="max-w-4xl mx-auto grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {nextTokens.length > 0 ? nextTokens.map((token, index) => (
+            <div key={token.token_number} className="bg-white/5 rounded-2xl p-6 text-center">
+              <div className="text-sm text-slate-400 mb-2">Queue Position {index + 1}</div>
+              <div className="text-4xl font-bold mb-2">{token.token_number}</div>
+              <p className="text-slate-300">{token.customer_name}</p>
+            </div>
+          )) : (
+            <div className="col-span-full text-center text-slate-400 text-xl py-12">
+              No waiting tokens in queue
+            </div>
+          )}
+        </div>
+      </section>
+
+      <footer className="mt-16 text-center text-slate-500">
+        <p>Auto-refreshes every 30 seconds • Last updated: {new Date().toLocaleTimeString()}</p>
+      </footer>
+    </div>
   );
 }

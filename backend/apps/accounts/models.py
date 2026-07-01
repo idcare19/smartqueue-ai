@@ -29,6 +29,25 @@ class User(AbstractUser):
         blank=True,
         related_name="users",
     )
+    department = models.ForeignKey(
+        "organizations.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    assigned_counter = models.ForeignKey(
+        "organizations.Counter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_members",
+    )
+    is_suspended = models.BooleanField(default=False)
+    is_on_leave = models.BooleanField(default=False)
+    is_online = models.BooleanField(default=False)
+    availability_notes = models.TextField(blank=True)
+    is_archived = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

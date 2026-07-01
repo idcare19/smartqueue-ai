@@ -7,14 +7,13 @@ import { EmptyState } from '@/components/site/empty-state';
 import { FiltersBar } from '@/components/site/filters-bar';
 import { Card } from '@/components/ui/card';
 import { notificationsApi } from '@/lib/notifications-api';
-import { notifications as fallbackNotifications, notificationStatsFallback } from '@/lib/mock-data';
 import type { NotificationItem, NotificationStats } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function NotificationCenterPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const [items, setItems] = useState<NotificationItem[]>(fallbackNotifications);
-  const [stats, setStats] = useState<NotificationStats>(notificationStatsFallback);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [stats, setStats] = useState<NotificationStats>({ total: 0, unread: 0, failed: 0, delivered: 0, providers: [] });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState<string | null>(null);

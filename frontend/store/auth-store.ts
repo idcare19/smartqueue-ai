@@ -109,7 +109,17 @@ export const useAuthStore = create<AuthState>()(
         set({ isSubmitting: true, error: null });
         try {
           const response = await authApi.register(payload);
-          get().setSession(response);
+          if (response.access && response.refresh) {
+            get().setSession(response as AuthResponse);
+          } else {
+            set({
+              user: response.user,
+              isAuthenticated: false,
+              accessToken: null,
+              refreshToken: null,
+              error: 'Verification email sent. Please verify your account to continue.'
+            });
+          }
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Unable to register.' });
           throw error;

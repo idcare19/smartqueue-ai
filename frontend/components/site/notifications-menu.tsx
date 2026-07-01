@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { notificationsApi } from '@/lib/notifications-api';
-import { notifications as fallbackNotifications, notificationStatsFallback } from '@/lib/mock-data';
 import type { NotificationItem } from '@/lib/types';
 import { useAuthStore } from '@/store/auth-store';
 import { useQueueWebsocket } from '@/components/realtime/use-queue-websocket';
@@ -18,8 +17,8 @@ export function NotificationsMenu() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [items, setItems] = useState<NotificationItem[]>(fallbackNotifications);
-  const [count, setCount] = useState(notificationStatsFallback.unread);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const query = useMemo(() => {

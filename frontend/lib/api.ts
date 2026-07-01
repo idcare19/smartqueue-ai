@@ -1,4 +1,4 @@
-import { API_BASE_URL, type AuthResponse, type AuthTokens, type AuthUser, type LoginPayload, type RegisterPayload } from '@/lib/auth';
+import { API_BASE_URL, type AuthResponse, type AuthTokens, type AuthUser, type ForgotPasswordPayload, type LoginPayload, type RegisterPayload, type RegisterResponse, type ResetPasswordPayload, type VerifyEmailPayload } from '@/lib/auth';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -29,7 +29,7 @@ export const authApi = {
       body: JSON.stringify(payload)
     }),
   register: (payload: RegisterPayload) =>
-    request<AuthResponse>('/api/auth/register/', {
+    request<RegisterResponse>('/api/auth/register/', {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
@@ -51,6 +51,20 @@ export const authApi = {
       headers: {
         Authorization: `Bearer ${access}`
       }
+    }),
+  forgotPassword: (payload: ForgotPasswordPayload) =>
+    request<{ detail: string }>('/api/auth/forgot-password/', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  resetPassword: (payload: ResetPasswordPayload) =>
+    request<{ detail: string }>('/api/auth/reset-password/', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  verifyEmail: (payload: VerifyEmailPayload) =>
+    request<{ detail: string }>('/api/auth/verify-email/', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     })
 };
-

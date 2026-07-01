@@ -1,7 +1,21 @@
 import { Card } from '@/components/ui/card';
 import type { TableColumn } from '@/lib/types';
 
-export function DashboardTable({ title, columns, rows }: { title: string; columns: Array<TableColumn<Record<string, string>>>; rows: Array<Record<string, string>> }) {
+export function DashboardTable({ 
+  title, 
+  columns, 
+  rows, 
+  actions 
+}: { 
+  title: string; 
+  columns: Array<TableColumn<Record<string, string>>>; 
+  rows: Array<Record<string, string>>;
+  actions?: Array<{
+    label: string;
+    onClick: (row: Record<string, string>) => void;
+    variant?: 'default' | 'destructive';
+  }>;
+}) {
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-white/10 p-6">
@@ -14,6 +28,7 @@ export function DashboardTable({ title, columns, rows }: { title: string; column
               {columns.map((column) => (
                 <th key={String(column.key)} className="px-6 py-4 font-medium">{column.label}</th>
               ))}
+              {actions && actions.length > 0 && <th className="px-6 py-4 font-medium">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -22,6 +37,25 @@ export function DashboardTable({ title, columns, rows }: { title: string; column
                 {columns.map((column) => (
                   <td key={String(column.key)} className="px-6 py-4 text-slate-200">{row[String(column.key)]}</td>
                 ))}
+                {actions && actions.length > 0 && (
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2 flex-wrap">
+                      {actions.map((action, actionIndex) => (
+                        <button
+                          key={actionIndex}
+                          onClick={() => action.onClick(row)}
+                          className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                            action.variant === 'destructive'
+                              ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                              : 'bg-white/10 text-slate-200 hover:bg-white/20'
+                          }`}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

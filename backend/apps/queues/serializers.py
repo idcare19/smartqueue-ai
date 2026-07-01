@@ -32,6 +32,11 @@ class QueueTokenSerializer(serializers.ModelSerializer):
             "sequence_number",
             "status",
             "note",
+            "queue_type",
+            "priority",
+            "is_paused",
+            "is_open",
+            "transferred_from_counter",
             "called_at",
             "serving_at",
             "completed_at",
@@ -50,9 +55,12 @@ class QueueTokenSerializer(serializers.ModelSerializer):
 
 
 class JoinQueueSerializer(serializers.ModelSerializer):
+    queue_type = serializers.ChoiceField(choices=("walk_in", "appointment", "vip", "emergency"), required=False, default="walk_in")
+    priority = serializers.ChoiceField(choices=("normal", "high", "vip", "emergency"), required=False, default="normal")
+
     class Meta:
         model = QueueToken
-        fields = ("branch", "service", "customer_name", "mobile_number")
+        fields = ("branch", "service", "customer_name", "mobile_number", "queue_type", "priority")
 
     def validate(self, attrs):
         branch = attrs["branch"]
@@ -66,6 +74,8 @@ class JoinQueueSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         branch: Branch = validated_data["branch"]
         service: Service = validated_data["service"]
+        queue_type = validated_data.pop("queue_type", "walk_in")
+        priority = validated_data.pop("priority", "normal")
         queue_date = timezone.localdate()
         next_sequence = (
             branch.queue_tokens.filter(queue_date=queue_date).aggregate(max_sequence=Max("sequence_number"))["max_sequence"] or 0
@@ -76,10 +86,14 @@ class JoinQueueSerializer(serializers.ModelSerializer):
             token_number=token_number,
             sequence_number=next_sequence,
             queue_date=queue_date,
+            queue_type=queue_type,
+            priority=priority,
             **validated_data,
         )
 
 
 class QueueActionSerializer(serializers.Serializer):
     counter = serializers.PrimaryKeyRelatedField(queryset=Counter.objects.all(), required=False, allow_null=True)
+    service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all(), required=False, allow_null=True)
     note = serializers.CharField(required=False, allow_blank=True)
+    queue_type = serializers.CharField(required=False, allow_blank=True)

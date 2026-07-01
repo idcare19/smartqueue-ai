@@ -31,6 +31,17 @@ class QueueToken(TimeStampedModel):
     sequence_number = models.PositiveIntegerField()
     status = models.CharField(max_length=16, choices=QueueStatus.choices, default=QueueStatus.WAITING)
     note = models.CharField(max_length=255, blank=True)
+    queue_type = models.CharField(max_length=32, default="walk_in")
+    priority = models.CharField(max_length=16, default="normal")
+    is_paused = models.BooleanField(default=False)
+    is_open = models.BooleanField(default=True)
+    transferred_from_counter = models.ForeignKey(
+        "organizations.Counter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transferred_queue_tokens",
+    )
     called_at = models.DateTimeField(null=True, blank=True)
     serving_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -49,4 +60,3 @@ class QueueToken(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.token_number
-

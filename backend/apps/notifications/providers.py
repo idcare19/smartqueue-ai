@@ -131,11 +131,11 @@ class WhatsAppCloudAdapter(BaseProviderAdapter):
     credential_keys = ("WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID")
 
 
-class ResendEmailAdapter(BaseProviderAdapter):
+class SmtpEmailAdapter(BaseProviderAdapter):
     channel = "email"
-    provider_name = "resend"
+    provider_name = "smtp"
     env_enabled_key = "NOTIFICATIONS_EMAIL_ENABLED"
-    credential_keys = ("RESEND_API_KEY", "RESEND_FROM_EMAIL")
+    credential_keys = ("SMTP_HOST", "SMTP_USERNAME", "DEFAULT_FROM_EMAIL")
 
 
 class InAppAdapter(BaseProviderAdapter):
@@ -153,7 +153,7 @@ class PushAdapter(BaseProviderAdapter):
 PROVIDER_REGISTRY = {
     "sms": TwilioSmsAdapter(),
     "whatsapp": WhatsAppCloudAdapter(),
-    "email": ResendEmailAdapter(),
+    "email": SmtpEmailAdapter(),
     "in_app": InAppAdapter(),
     "push": PushAdapter(),
 }

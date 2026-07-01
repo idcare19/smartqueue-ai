@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: smartqueue-ai-backend
+    env: docker
+    plan: starter
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /api/health/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

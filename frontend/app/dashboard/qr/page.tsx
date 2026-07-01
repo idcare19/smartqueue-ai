@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/card';
 import { FiltersBar } from '@/components/site/filters-bar';
 import { EmptyState } from '@/components/site/empty-state';
-import { qrRows } from '@/lib/mock-data';
 
 export default function QrCodeManagementPage() {
+  const qrRows: Array<{ label: string; type: string; branch: string; destination: string }> = [];
   return (
     <div className="space-y-6 px-4 py-6 md:px-6">
       <FiltersBar placeholder="Search QR codes..." />
