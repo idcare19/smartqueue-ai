@@ -1,9 +1,13 @@
 from pathlib import Path
 import logging
 import os
+from urllib.parse import urlparse
 from datetime import timedelta
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-only-secret-key')
 DEBUG = os.getenv('DEBUG', '1').lower() in {'1', 'true', 'yes', 'on'}
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver,smartqueue-ai-alpha.vercel.app,onrender.com').split(',') if host.strip()]
@@ -78,6 +82,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -115,7 +120,18 @@ DATABASES = {
     }
 }
 
-if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+database_url = os.getenv('DATABASE_URL', '').strip()
+if database_url:
+    parsed = urlparse(database_url)
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': parsed.path.lstrip('/'),
+        'USER': parsed.username or '',
+        'PASSWORD': parsed.password or '',
+        'HOST': parsed.hostname or '',
+        'PORT': parsed.port or '5432',
+    }
+elif DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
     DATABASES['default']['NAME'] = os.getenv('POSTGRES_DB', 'smartqueue')
     DATABASES['default']['USER'] = os.getenv('POSTGRES_USER', 'smartqueue')
     DATABASES['default']['PASSWORD'] = os.getenv('POSTGRES_PASSWORD', 'smartqueue')
@@ -136,7 +152,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

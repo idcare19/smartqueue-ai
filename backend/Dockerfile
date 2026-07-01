@@ -13,4 +13,6 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 COPY backend /app/backend
 WORKDIR /app/backend
 
+RUN python manage.py collectstatic --noinput
+
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
