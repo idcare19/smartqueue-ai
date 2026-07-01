@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 import os
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from datetime import timedelta
 
 from dotenv import load_dotenv
@@ -123,6 +123,12 @@ DATABASES = {
 database_url = os.getenv('DATABASE_URL', '').strip()
 if database_url:
     parsed = urlparse(database_url)
+    query = parse_qs(parsed.query)
+    options = {}
+    if "sslmode" in query and query["sslmode"]:
+        options["sslmode"] = query["sslmode"][0]
+    if "channel_binding" in query and query["channel_binding"]:
+        options["channel_binding"] = query["channel_binding"][0]
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': parsed.path.lstrip('/'),
@@ -130,6 +136,7 @@ if database_url:
         'PASSWORD': parsed.password or '',
         'HOST': parsed.hostname or '',
         'PORT': parsed.port or '5432',
+        'OPTIONS': options,
     }
 elif DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
     DATABASES['default']['NAME'] = os.getenv('POSTGRES_DB', 'smartqueue')
