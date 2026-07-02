@@ -33,7 +33,7 @@ export function DashboardTable({
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={`${row.token ?? row.branch ?? index}`} className="border-t border-white/5">
+              <tr key={`${row.token ?? row.branch ?? index}`} data-testid={row.id ? `row-${row.id}` : undefined} className="border-t border-white/5">
                 {columns.map((column) => (
                   <td key={String(column.key)} className="px-6 py-4 text-slate-200">{row[String(column.key)]}</td>
                 ))}
@@ -43,6 +43,7 @@ export function DashboardTable({
                       {actions.map((action, actionIndex) => (
                         <button
                           key={actionIndex}
+                          data-testid={row.id ? `row-${row.id}-action-${action.label.toLowerCase()}` : undefined}
                           onClick={() => action.onClick(row)}
                           className={`px-3 py-1 text-xs rounded-md transition-colors ${
                             action.variant === 'destructive'

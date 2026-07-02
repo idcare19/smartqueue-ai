@@ -23,7 +23,16 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
     throw new Error(payload.detail ?? payload.message ?? 'Unable to complete request.');
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const text = await response.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 export const queueApi = {

@@ -22,7 +22,7 @@ export default function ServiceManagementPage() {
   const user = useAuthStore((state) => state.user);
   const [rows, setRows] = useState<Array<Record<string, string>>>([]);
   const [rawServices, setRawServices] = useState<Array<Record<string, string | number | null>>>([]);
-  const [branches, setBranches] = useState<Array<{id: number; name: string}>>([]);
+  const [branches, setBranches] = useState<Array<{id: number; name: string; organization: number | null}>>([]);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -114,9 +114,9 @@ export default function ServiceManagementPage() {
     if (!accessToken) return;
     try {
       const data = await queueApi.getBranches(accessToken);
-      setBranches(data.map(item => ({ id: Number(item.id), name: String(item.name) })));
-    } catch {
-      console.error('Failed to load branches');
+      setBranches(data.map(item => ({ id: Number(item.id), name: String(item.name), organization: item.organization ? Number(item.organization) : null })));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Failed to load branches.');
     }
   }, [accessToken]);
 
@@ -127,28 +127,31 @@ export default function ServiceManagementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !user?.organization) return;
+    const selectedBranch = branches.find((branch) => branch.id === Number(formData.branch));
+    const organizationId = selectedBranch?.organization ?? user?.organization;
+    if (!accessToken || !organizationId) return;
     
     setIsSubmitting(true);
     try {
       if (editingId) {
         // Update existing service
-        await queueApi.updateService(accessToken, editingId, {
-          name: formData.name,
-          duration_minutes: formData.duration_minutes,
-          queue_prefix: formData.queue_prefix,
-          priority: formData.priority,
-          is_active: formData.is_active,
-          branch: Number(formData.branch)
-        });
+          await queueApi.updateService(accessToken, editingId, {
+            name: formData.name,
+            duration: formData.duration_minutes,
+            prefix: formData.queue_prefix,
+            priority: formData.priority,
+            is_active: formData.is_active,
+            branch: Number(formData.branch),
+            organization: organizationId
+          });
         setEditingId(null);
       } else {
         // Create new service
         await queueApi.createService(accessToken, {
-          organization: user.organization,
+          organization: organizationId,
           name: formData.name,
-          duration_minutes: formData.duration_minutes,
-          queue_prefix: formData.queue_prefix,
+          duration: formData.duration_minutes,
+          prefix: formData.queue_prefix,
           priority: formData.priority,
           is_active: formData.is_active,
           branch: Number(formData.branch)

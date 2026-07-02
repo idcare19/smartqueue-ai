@@ -42,7 +42,7 @@ function LoginForm() {
           <Link href="/forgot-password" className="text-emerald-300">Forgot password?</Link>
         </div>
         {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-        <Button className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>

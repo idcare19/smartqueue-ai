@@ -23,12 +23,14 @@ export default function BranchManagementPage() {
   const user = useAuthStore((state) => state.user);
   const [rows, setRows] = useState<Array<Record<string, string>>>([]);
   const [rawBranches, setRawBranches] = useState<Array<Record<string, string | number | null>>>([]);
+  const [organizations, setOrganizations] = useState<Array<{ id: number; name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     working_hours: '9 AM - 5 PM',
     timezone: 'UTC',
-    status: 'active'
+    status: 'active',
+    organization: ''
   });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +57,16 @@ export default function BranchManagementPage() {
     }
   }, [accessToken]);
 
+  const loadOrganizations = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const data = await queueApi.getOrganizations(accessToken);
+      setOrganizations(data.map((item) => ({ id: Number(item.id), name: String(item.name) })));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load organizations.');
+    }
+  }, [accessToken]);
+
   const handleEdit = (row: Record<string, string>) => {
     const id = parseInt(row.id, 10);
     const branch = rawBranches.find(b => b.id === id);
@@ -64,7 +76,8 @@ export default function BranchManagementPage() {
         name: String(branch.name || ''),
         working_hours: String(branch.working_hours || '9 AM - 5 PM'),
         timezone: String(branch.timezone || 'UTC'),
-        status: String(branch.status || 'active')
+        status: String(branch.status || 'active'),
+        organization: String(branch.organization || '')
       });
     }
   };
@@ -109,11 +122,13 @@ export default function BranchManagementPage() {
 
   useEffect(() => {
     loadBranches();
-  }, [accessToken, loadBranches]);
+    loadOrganizations();
+  }, [accessToken, loadBranches, loadOrganizations]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !user?.organization) return;
+    const organizationId = Number(formData.organization || user?.organization || organizations[0]?.id);
+    if (!accessToken || !organizationId) return;
     
     setIsSubmitting(true);
     try {
@@ -130,16 +145,16 @@ export default function BranchManagementPage() {
       } else {
         // Create new branch
         await queueApi.createBranch(accessToken, {
-          organization: user.organization,
+          organization: organizationId,
           name: formData.name,
           slug,
           status: formData.status,
           working_hours: formData.working_hours,
           timezone: formData.timezone,
-          manager: user.id
+          manager: user?.id ?? 1
         });
       }
-      setFormData({ name: '', working_hours: '9 AM - 5 PM', timezone: 'UTC', status: 'active' });
+      setFormData({ name: '', working_hours: '9 AM - 5 PM', timezone: 'UTC', status: 'active', organization: '' });
       await loadBranches();
     } catch (error) {
       setError(error instanceof Error ? error.message : `Unable to ${editingId ? 'update' : 'create'} branch.`);
@@ -170,6 +185,17 @@ export default function BranchManagementPage() {
           <h2 className="text-xl font-semibold text-white">Add / edit branch</h2>
           <p className="mt-2 text-sm text-slate-300">Create a new branch for your organization.</p>
           <form onSubmit={handleSubmit} className="mt-6 space-y-3 rounded-3xl bg-white/5 p-4">
+            <select
+              value={formData.organization}
+              onChange={(event) => setFormData({ ...formData, organization: event.target.value })}
+              className="w-full rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={!user?.organization}
+            >
+              <option value="">{user?.organization ? 'Current organization' : 'Select organization'}</option>
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>{organization.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               placeholder="Branch name"
@@ -213,7 +239,7 @@ export default function BranchManagementPage() {
                 type="button"
                 onClick={() => {
                   setEditingId(null);
-                  setFormData({ name: '', working_hours: '9 AM - 5 PM', timezone: 'UTC', status: 'active' });
+                  setFormData({ name: '', working_hours: '9 AM - 5 PM', timezone: 'UTC', status: 'active', organization: '' });
                 }}
                 className="w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
               >

@@ -22,12 +22,12 @@ export default function CounterManagementPage() {
   const user = useAuthStore((state) => state.user);
   const [rows, setRows] = useState<Array<Record<string, string>>>([]);
   const [rawCounters, setRawCounters] = useState<Array<Record<string, string | number | null>>>([]);
-  const [branches, setBranches] = useState<Array<{id: number; name: string}>>([]);
+  const [branches, setBranches] = useState<Array<{id: number; name: string; organization: number | null}>>([]);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    status: 'active',
+    status: 'open',
     branch: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,9 +108,9 @@ export default function CounterManagementPage() {
     if (!accessToken) return;
     try {
       const data = await queueApi.getBranches(accessToken);
-      setBranches(data.map(item => ({ id: Number(item.id), name: String(item.name) })));
-    } catch {
-      console.error('Failed to load branches');
+      setBranches(data.map(item => ({ id: Number(item.id), name: String(item.name), organization: item.organization ? Number(item.organization) : null })));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Failed to load branches.');
     }
   }, [accessToken]);
 
@@ -121,7 +121,9 @@ export default function CounterManagementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !user?.organization) return;
+    const selectedBranch = branches.find((branch) => branch.id === Number(formData.branch));
+    const organizationId = selectedBranch?.organization ?? user?.organization;
+    if (!accessToken || !organizationId) return;
     
     setIsSubmitting(true);
     try {
@@ -130,13 +132,14 @@ export default function CounterManagementPage() {
         await queueApi.updateCounter(accessToken, editingId, {
           name: formData.name,
           status: formData.status,
-          branch: Number(formData.branch)
+          branch: Number(formData.branch),
+          organization: organizationId
         });
         setEditingId(null);
       } else {
         // Create new counter
         await queueApi.createCounter(accessToken, {
-          organization: user.organization,
+          organization: organizationId,
           name: formData.name,
           status: formData.status,
           branch: Number(formData.branch)
@@ -197,8 +200,9 @@ export default function CounterManagementPage() {
               onChange={(event) => setFormData({ ...formData, status: event.target.value })}
               className="w-full rounded-2xl bg-slate-950/60 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="active">Active</option>
+              <option value="open">Open</option>
               <option value="paused">Paused</option>
+              <option value="closed">Closed</option>
             </select>
             <button
               type="submit"
@@ -210,10 +214,10 @@ export default function CounterManagementPage() {
             {editingId && (
               <button
                 type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({ name: '', status: 'active', branch: '' });
-                }}
+              onClick={() => {
+                setEditingId(null);
+                  setFormData({ name: '', status: 'open', branch: '' });
+              }}
                 className="w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700"
               >
                 Cancel Edit
