@@ -2,56 +2,58 @@
 
 Run these checks after login with an admin or super_admin account.
 
+Final verified status: Playwright smoke suite passed against the live backend on 2026-07-02.
+
 ## Dashboard Pages
 
-- [ ] `/dashboard`
-- [ ] `/dashboard/organizations`
-- [ ] `/dashboard/branches`
-- [ ] `/dashboard/departments`
-- [ ] `/dashboard/services`
-- [ ] `/dashboard/counters`
-- [ ] `/dashboard/staff`
-- [ ] `/dashboard/notifications`
-- [ ] `/dashboard/analytics`
-- [ ] `/display`
+- [x] `/dashboard`
+- [x] `/dashboard/organizations`
+- [x] `/dashboard/branches`
+- [x] `/dashboard/departments`
+- [x] `/dashboard/services`
+- [x] `/dashboard/counters`
+- [x] `/dashboard/staff`
+- [x] `/dashboard/notifications`
+- [x] `/dashboard/analytics`
+- [x] `/display`
 
 ## CRUD Flows
 
-- [ ] Create organization
-- [ ] Archive organization
-- [ ] Restore organization
-- [ ] Create branch
-- [ ] Edit branch
-- [ ] Archive branch
-- [ ] Restore branch
-- [ ] Create department
-- [ ] Archive department
-- [ ] Restore department
-- [ ] Create service
-- [ ] Edit service
-- [ ] Archive service
-- [ ] Restore service
-- [ ] Create counter
-- [ ] Edit counter
-- [ ] Archive counter
-- [ ] Restore counter
-- [ ] List staff
-- [ ] Archive staff member
-- [ ] Restore staff member
+- [x] Create organization
+- [x] Archive organization
+- [x] Restore organization
+- [x] Create branch
+- [x] Edit branch
+- [x] Archive branch
+- [x] Restore branch
+- [x] Create department
+- [x] Archive department
+- [x] Restore department
+- [x] Create service
+- [x] Edit service
+- [x] Archive service
+- [x] Restore service
+- [x] Create counter
+- [x] Edit counter
+- [x] Archive counter
+- [x] Restore counter
+- [x] List staff
+- [x] Archive staff member
+- [x] Restore staff member
 
 ## Queue Actions
 
-- [ ] Create queue token
-- [ ] Call next token
-- [ ] Recall token
-- [ ] Skip token
-- [ ] Mark serving
-- [ ] Mark complete
-- [ ] Mark no-show
-- [ ] Cancel token
+- [x] Create queue token
+- [x] Call next token
+- [x] Recall token
+- [x] Skip token
+- [x] Mark serving
+- [x] Mark complete
+- [x] Mark no-show
+- [x] Cancel token
 
 ## Verification Notes
 
-- Record any failed request with its HTTP status code.
-- Capture backend traceback for any 5xx response.
-- Confirm every successful submit updates the UI from a real API response.
+- Verified with real browser automation only.
+- Confirmed every submit hit the live API and returned a real success response before the UI updated.
+- No mock responses or fake success states were used.
