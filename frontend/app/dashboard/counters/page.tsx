@@ -81,7 +81,7 @@ export default function CounterManagementPage() {
     const id = parseInt(row.id, 10);
     if (!accessToken || isNaN(id)) return;
     try {
-      await queueApi.updateCounter(accessToken, id, { is_active: true });
+      await queueApi.restoreCounter(accessToken, id);
       await loadCounters();
     } catch (restoreError) {
       setError(restoreError instanceof Error ? restoreError.message : 'Unable to restore counter.');

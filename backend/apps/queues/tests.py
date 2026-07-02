@@ -125,3 +125,36 @@ class QueueEngineTests(APITestCase):
         self.assertTrue(pause_response.data["is_paused"])
         self.assertEqual(resume_response.status_code, status.HTTP_200_OK)
         self.assertFalse(resume_response.data["is_paused"])
+
+    def test_admin_can_create_queue_token_and_call_next(self):
+        admin = User.objects.create_user(
+            username="admin",
+            email="admin@example.com",
+            password="SecurePass123",
+            role="super_admin",
+            organization=self.organization,
+            is_staff=True,
+            is_superuser=True,
+        )
+        refresh = RefreshToken.for_user(admin)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+
+        join_response = self.client.post(
+            reverse("queue-token-join-queue"),
+            {
+                "branch": self.branch.id,
+                "service": self.service.id,
+                "customer_name": "Taylor",
+                "mobile_number": "6666666666",
+            },
+            format="json",
+        )
+        self.assertEqual(join_response.status_code, status.HTTP_201_CREATED)
+
+        call_next_response = self.client.post(
+            reverse("queue-token-call-next"),
+            {"branch": self.branch.id, "counter": self.counter.id},
+            format="json",
+        )
+        self.assertEqual(call_next_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(call_next_response.data["status"], "called")

@@ -131,6 +131,7 @@ class DepartmentViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
         instance.is_active = False
         instance.save(update_fields=["is_active"])
 
+    @action(detail=True, methods=["post"])
     def restore(self, request, pk=None):
         instance = self.get_object()
         instance.is_active = True

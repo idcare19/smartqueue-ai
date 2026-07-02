@@ -75,6 +75,14 @@ export default function OrganizationsDashboard() {
         await loadOrganizations();
       },
       variant: 'destructive' as const
+    },
+    {
+      label: 'Restore',
+      onClick: async (row: Record<string, string>) => {
+        if (!token) return;
+        await queueApi.restoreOrganization(token, Number(row.id));
+        await loadOrganizations();
+      }
     }
   ];
 

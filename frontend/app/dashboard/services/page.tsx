@@ -87,7 +87,7 @@ export default function ServiceManagementPage() {
     const id = parseInt(row.id, 10);
     if (!accessToken || isNaN(id)) return;
     try {
-      await queueApi.updateService(accessToken, id, { is_active: true });
+      await queueApi.restoreService(accessToken, id);
       await loadServices();
     } catch (restoreError) {
       setError(restoreError instanceof Error ? restoreError.message : 'Unable to restore service.');

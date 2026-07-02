@@ -84,7 +84,7 @@ export default function BranchManagementPage() {
     const id = parseInt(row.id, 10);
     if (!accessToken || isNaN(id)) return;
     try {
-      await queueApi.updateBranch(accessToken, id, { is_active: true });
+      await queueApi.restoreBranch(accessToken, id);
       await loadBranches();
     } catch (restoreError) {
       setError(restoreError instanceof Error ? restoreError.message : 'Unable to restore branch.');

@@ -85,3 +85,8 @@ class StaffManagementTests(APITestCase):
         self.assertEqual(offline_response.status_code, status.HTTP_200_OK)
         online_response = self.client.post(reverse("staff-online", args=[self.staff.id]), format="json")
         self.assertEqual(online_response.status_code, status.HTTP_200_OK)
+
+    def test_admin_can_list_staff(self):
+        response = self.client.get(reverse("staff-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
