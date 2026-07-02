@@ -1,6 +1,7 @@
 # API Documentation
 
 ## Health
+- `GET /health/`
 - `GET /api/health/`
 - `GET /api/health/db/`
 - `GET /api/health/redis/`

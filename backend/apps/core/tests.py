@@ -24,6 +24,13 @@ class HealthCheckTests(APITestCase):
         # Overall status shouldn't be unhealthy in dev even if Redis is down
         self.assertIn(data["status"], ["healthy", "degraded"])
 
+    def test_root_health_endpoint_returns_200(self):
+        """Test that the root health probe is exposed at /health/"""
+        response = self.client.get("/health/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = json.loads(response.content)
+        self.assertIn("status", data)
+
     def test_db_health_endpoint(self):
         """Test that database health check always passes in test environment"""
         response = self.client.get(reverse("health-database"))
